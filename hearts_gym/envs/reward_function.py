@@ -6,7 +6,8 @@ import numpy as np
 
 from hearts_gym.utils.typing import Reward
 from .hearts_env import HeartsEnv
-
+from .hearts_game import HeartsGame
+from .card_deck import Card, Deck
 
 class RewardFunction:
     """
@@ -61,7 +62,8 @@ class RewardFunction:
 
         if trick_is_over and self.game.has_shot_the_moon(player_index):
             return self.game.max_penalty * self.game.max_num_cards_on_hand
-
+        
+    
         # penalty = self.game.penalties[player_index]
 
         # if self.game.is_done():
@@ -69,6 +71,8 @@ class RewardFunction:
 
         if self.game.prev_trick_winner_index == player_index:
             assert self.game.prev_trick_penalty is not None
+            if self.game.prev_trick_penalty==13:
+                return -self.game.prev_trick_penalty * self.game.max_num_cards_on_hand
             return -self.game.prev_trick_penalty
         return 1
         # return -penalty
