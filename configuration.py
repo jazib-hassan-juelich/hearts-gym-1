@@ -120,7 +120,7 @@ opt_metric: str = 'episode_reward_mean'
 opt_mode: str = 'max'
 
 stop_config = {
-    'timesteps_total': 5000000,
+    'timesteps_total': 1000000,
 }
 
 scheduler = tune.schedulers.FIFOScheduler()

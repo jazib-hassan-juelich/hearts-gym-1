@@ -55,6 +55,8 @@ class RewardFunction:
 
         card = self.game.prev_played_cards[player_index]
         leading_suit = self.game.prev_leading_suit
+        hands_info_players = self.game.prev_hands[player_index]
+        
        # prev_hands_check = self.game.prev_hands()
         """ Implementing a reward for the following case:
             1. If the card played in the last trick (by the agent) is not
@@ -64,7 +66,12 @@ class RewardFunction:
             
         if card != leading_suit and leading_suit == Card.SUIT_HEART:
             return self.game.max_num_cards_on_hand
-            
+         
+        if leading_suit == Card.SUIT_CLUB and card != Card.SUIT_CLUB and hands_info_players == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand
+        
+        if leading_suit == Card.SUIT_DIAMOND and card != Card.SUIT_DIAMOND and hands_info_players == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand
         
         if card is None:
             # The agent did not take a turn until now; no information
