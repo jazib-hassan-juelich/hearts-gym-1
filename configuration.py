@@ -77,7 +77,7 @@ it may sometimes even offer better support.
 
 # RLLib config
 
-algorithm = 'PPO'
+algorithm = 'PG'
 checkpoint_path: Optional[str] = None
 """Path of a checkpoint to load. Use `None` to not load a checkpoint."""
 resume = False
@@ -104,7 +104,7 @@ opt_metric: str = 'episode_reward_mean'
 opt_mode: str = 'max'
 
 stop_config = {
-    'timesteps_total': 2000000,
+    'timesteps_total': 5000000,
 }
 
 scheduler = tune.schedulers.FIFOScheduler()
