@@ -1,8 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from ray import tune
 
 from hearts_gym import utils
+from hearts_gym.utils.obs_transforms import ObsTransform
+
+assert utils.DEFAULT_FRAMEWORK is not None
 
 RESULTS_DIR = './results'
 
@@ -24,7 +27,7 @@ checkpoints due to arbitrary code execution. Trade-off between safety
 and convenience.
 """
 
-# "tf", "torch", or "jax", whichever is available (in that order).
+# By default: "tf", "torch", or "jax", whichever is available (in that order).
 framework: str = utils.DEFAULT_FRAMEWORK
 
 custom_rulebased_policies: Dict[str, type] = {}
@@ -34,6 +37,8 @@ Mapping from policy IDs to classes (not class instances!) implementing
 `hearts_gym.policies.deterministic_policy_impl.DeterministicPolicyImpl`.
 """
 
+obs_transforms: List[ObsTransform] = []
+
 
 # Environment config
 
@@ -42,6 +47,16 @@ deck_size = 52
 seed = 0
 mask_actions = True
 
+# The following is a simple example for a custom `policy_mapping_fn`
+# for a four-player game:
+#
+# def policy_mapping_fn(player_index):
+#     return {
+#         0: LEARNED_AGENT_ID,
+#         1: RANDOM_AGENT_ID,
+#         2: RULEBASED_AGENT_ID,
+#         3: LEARNED_AGENT_ID,
+#     }[player_index]
 policy_mapping_fn = utils.create_policy_mapping(
     'all_learned',
     # 'one_learned_rest_random',
@@ -88,6 +103,7 @@ env_config = {
     'deck_size': deck_size,
     'seed': seed,
     'mask_actions': mask_actions,
+    'obs_transforms': obs_transforms,
 }
 
 model_config = {

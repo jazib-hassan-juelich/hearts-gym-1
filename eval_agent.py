@@ -9,12 +9,17 @@ import pickle
 import socket
 import sys
 from typing import Any, Dict, List, Optional, Tuple
+import uuid
+from uuid import UUID
 import zlib
 
+import numpy as np
 import ray
 from ray.rllib.agents.trainer import COMMON_CONFIG
+from ray.rllib.models import MODEL_DEFAULTS
 from ray.rllib.utils.typing import TensorType, TrainerConfigDict
 from ray.tune.result import EXPR_PARAM_PICKLE_FILE
+from ray.tune.trainable import Trainable
 
 import configuration as conf
 from configuration import ENV_NAME, LEARNED_POLICY_ID
@@ -27,7 +32,8 @@ from hearts_gym.server.hearts_server import (
     SERVER_ADDRESS,
     PORT,
 )
-from hearts_gym.utils.typing import Reward
+from hearts_gym.utils import ObsTransform
+from hearts_gym.utils.typing import Observation, Reward
 
 SERVER_TIMEOUT_SEC = HeartsServer.PRINT_INTERVAL_SEC + 5
 
@@ -44,7 +50,11 @@ def parse_args() -> Namespace:
     parser.add_argument(
         'checkpoint_path',
         type=str,
-        nargs='?' if conf.checkpoint_path is not None else None,
+        nargs=(
+            '?'  # type: ignore[arg-type]
+            if conf.checkpoint_path is not None
+            else None
+        ),
         default=conf.checkpoint_path,
         help='Path of model checkpoint to load for evaluation.',
     )
@@ -326,6 +336,79 @@ def _update_indices(
         values[i] = new_val
 
 
+def _update_states(
+        agent: Trainable,
+        states: List[List[TensorType]],
+        indices: List[int],
+        new_states: List[List[TensorType]],
+):
+    model_config = utils.get_default(agent.config, 'model', COMMON_CONFIG)
+
+    if (
+            utils.get_default(
+                model_config, 'use_attention', MODEL_DEFAULTS)
+            or (
+                (
+                    utils.get_default(
+                        model_config, 'custom_model', MODEL_DEFAULTS)
+                    is not None
+                )
+                and model_config.get(
+                    'custom_model', '').endswith('_attn')
+            )
+    ):
+        for (i, new_state) in zip(indices, new_states):
+            for (j, (prev_state, state)) in enumerate(
+                    zip(states[i], new_state),
+            ):
+                states[i][j] = np.vstack((prev_state[1:], state))
+    else:
+        _update_indices(states, indices, new_states)
+
+
+def _transform_observations(
+        obs_transforms: List[ObsTransform],
+        remove_action_mask: bool,
+        has_action_mask: bool,
+        observations: List[Observation],
+        uuids: List[UUID],
+) -> None:
+    """Modify the given observations in-place, applying the given
+    transformations and stripping them of the action mask as desired.
+
+    Args:
+        obs_transforms (List[ObsTransform]): Transformations to apply to
+            the raw observations (that is, without the action mask).
+        remove_action_mask (bool): Whether to strip the observations of
+            their action mask.
+        has_action_mask (bool): Whether the observation contain an
+            action mask.
+        observations (List[Observation]): Observations to transform.
+        uuids (List[UUID]): Uniquely identifying IDs of the games
+            being observed.
+    """
+    if has_action_mask:
+        for (i, (obs, uuid_)) in enumerate(zip(observations, uuids)):
+            observations[i][HeartsEnv.OBS_KEY] = utils.apply_obs_transforms(
+                obs_transforms,
+                obs[HeartsEnv.OBS_KEY],
+                0,
+                uuid_,
+            )
+    else:
+        for (i, (obs, uuid_)) in enumerate(zip(observations, uuids)):
+            observations[i] = utils.apply_obs_transforms(
+                obs_transforms,
+                obs,
+                0,
+                uuid_,
+            )
+
+    if remove_action_mask:
+        for (i, obs) in enumerate(observations):
+            observations[i] = obs[HeartsEnv.OBS_KEY]
+
+
 def main() -> None:
     """Connect to a server and play games using a loaded model."""
     args = parse_args()
@@ -412,11 +495,14 @@ def main() -> None:
             and not utils.get_default(config, 'env_config', COMMON_CONFIG).get(
                 'mask_actions', HeartsEnv.MASK_ACTIONS_DEFAULT)
         )
+        obs_transforms = utils.get_default(
+            config, 'env_config', COMMON_CONFIG).get('obs_transforms', [])
 
         num_iters = 0
         num_games = 0
         while not _is_done(num_games, max_num_games):
-            states: List[TensorType] = [
+            uuids = [uuid.uuid4() for _ in range(num_parallel_games)]
+            states: List[List[TensorType]] = [
                 utils.get_initial_state(agent, LEARNED_POLICY_ID)
                 for _ in range(num_parallel_games)
             ]
@@ -450,13 +536,14 @@ def main() -> None:
                         break
                 assert all(str_player_index in obs for obs in obss), \
                     'received wrong data'
-                if remove_action_mask:
-                    obss = [
-                        obs[str_player_index][HeartsEnv.OBS_KEY]
-                        for obs in obss
-                    ]
-                else:
-                    obss = [obs[str_player_index] for obs in obss]
+                obss = [obs[str_player_index] for obs in obss]
+                _transform_observations(
+                    obs_transforms,
+                    remove_action_mask,
+                    mask_actions,
+                    obss,
+                    _take_indices(uuids, indices),
+                )
                 # print('Received', len(obss), 'observations.')
 
                 masked_prev_actions = _take_indices(prev_actions, indices)
@@ -482,7 +569,7 @@ def main() -> None:
 
                 server_utils.send_actions(client, actions)
 
-                _update_indices(states, indices, new_states)
+                _update_states(agent, states, indices, new_states)
                 _update_indices(prev_actions, indices, actions)
 
             server_utils.send_ok(client)
