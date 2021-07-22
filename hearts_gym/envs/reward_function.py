@@ -62,7 +62,7 @@ class RewardFunction:
             2. The leading suit is hearts or spades
             3. Then reward the agent"""
             
-        if card != leading_suit and (leading_suit == Card.SUIT_HEART or leading_suit == Card.SUIT_SPADE):
+        if card != leading_suit and leading_suit == Card.SUIT_HEART:
             return self.game.max_num_cards_on_hand
             
         
