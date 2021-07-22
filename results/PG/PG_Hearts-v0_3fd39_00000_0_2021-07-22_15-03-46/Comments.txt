@@ -1,0 +1,7 @@
+this run contains is performed for 1M timesteps with following modifications to reward function:
+
+  if card != leading_suit and leading_suit == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand
+         
+        if leading_suit == Card.SUIT_SPADES and card != Card.SUIT_SPADES and hands_info_players == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand

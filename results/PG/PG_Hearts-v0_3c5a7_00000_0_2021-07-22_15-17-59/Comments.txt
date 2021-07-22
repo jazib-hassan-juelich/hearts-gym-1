@@ -1,0 +1,10 @@
+Simualtion with 1M timesteps and following reward function modification.
+
+      if card != leading_suit and leading_suit == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand
+         
+        if leading_suit == Card.SUIT_CLUB and card != Card.SUIT_CLUB and hands_info_players == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand
+        
+        if leading_suit == Card.SUIT_DIAMOND and card != Card.SUIT_DIAMOND and hands_info_players == Card.SUIT_HEART:
+            return self.game.max_num_cards_on_hand

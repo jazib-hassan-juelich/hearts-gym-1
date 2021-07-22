@@ -1,0 +1,53 @@
+{
+  "env": "Hearts-v0",
+  "env_config": {
+    "deck_size": 52,
+    "mask_actions": true,
+    "num_players": 4,
+    "obs_transforms": [],
+    "seed": 0
+  },
+  "framework": "tf",
+  "model": {
+    "custom_model": "masked_actions",
+    "custom_model_config": {
+      "framework": "tf",
+      "model_cls": null
+    },
+    "max_seq_len": 13,
+    "num_framestacks": 0
+  },
+  "multiagent": {
+    "policies": {
+      "learned": [
+        null,
+        "Dict(action_mask:Box(0, 1, (13,), int8), obs:Dict(cards:Box(0, 9, (52,), int8), leading_hearts_allowed:Discrete(2)))",
+        "Discrete(13)",
+        {}
+      ],
+      "random": [
+        "<class 'hearts_gym.policies.random_policy.RandomPolicy'>",
+        "Dict(action_mask:Box(0, 1, (13,), int8), obs:Dict(cards:Box(0, 9, (52,), int8), leading_hearts_allowed:Discrete(2)))",
+        "Discrete(13)",
+        {
+          "mask_actions": true,
+          "seed": null
+        }
+      ],
+      "rulebased": [
+        "<class 'hearts_gym.policies.rule_based_policy.RuleBasedPolicy'>",
+        "Dict(action_mask:Box(0, 1, (13,), int8), obs:Dict(cards:Box(0, 9, (52,), int8), leading_hearts_allowed:Discrete(2)))",
+        "Discrete(13)",
+        {
+          "mask_actions": true
+        }
+      ]
+    },
+    "policies_to_train": [
+      "learned"
+    ],
+    "policy_mapping_fn": "<function create_policy_mapping.<locals>.policy_mapping_all_learned at 0x000001E3A6F23310>"
+  },
+  "num_gpus": 0,
+  "num_workers": 7
+}
