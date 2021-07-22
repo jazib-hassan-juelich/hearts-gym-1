@@ -54,7 +54,18 @@ class RewardFunction:
             return -self.game.max_penalty * self.game.max_num_cards_on_hand
 
         card = self.game.prev_played_cards[player_index]
-
+        leading_suit = self.game.prev_leading_suit
+       # prev_hands_check = self.game.prev_hands()
+        """ Implementing a reward for the following case:
+            1. If the card played in the last trick (by the agent) is not
+            the leading suit and
+            2. The leading suit is hearts or spades
+            3. Then reward the agent"""
+            
+        if card != leading_suit and (leading_suit == Card.SUIT_HEART or leading_suit == Card.SUIT_SPADE):
+            return self.game.max_num_cards_on_hand
+            
+        
         if card is None:
             # The agent did not take a turn until now; no information
             # to provide.
@@ -63,12 +74,14 @@ class RewardFunction:
         if trick_is_over and self.game.has_shot_the_moon(player_index):
             return self.game.max_penalty * self.game.max_num_cards_on_hand
         
-    
+        
+        #if prev_hands_check != Card.SUIT_CLUB:
+         #   return print(True)
         # penalty = self.game.penalties[player_index]
 
         # if self.game.is_done():
         #     return -penalty
-
+        "Penalizing more for the case when the player gets a queen of spades"
         if self.game.prev_trick_winner_index == player_index:
             assert self.game.prev_trick_penalty is not None
             if self.game.prev_trick_penalty==13:
